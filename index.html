@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b1a3a">
+<title>DOOM GONG: Denim Quest</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#050b1c;color:#fff;font-family:-apple-system,system-ui,sans-serif;overflow:hidden}
+#bg{position:fixed;inset:0;z-index:0}
+.wrap{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+header{text-align:center;padding:14px 10px 6px}
+h1{margin:0;font-size:30px;letter-spacing:3px;font-weight:900;background:linear-gradient(90deg,#7fb2ff,#ff6bd6,#ffd36b,#7fb2ff);background-size:300%;-webkit-background-clip:text;color:transparent;animation:sh 6s linear infinite}
+@keyframes sh{to{background-position:300%}}
+.sub{font-size:13px;opacity:.75;margin-top:2px}
+nav{display:flex;gap:6px;padding:8px 10px}
+nav button{flex:1;padding:12px 4px;border:0;border-radius:14px;background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:700}
+nav button.on{background:linear-gradient(135deg,#2b5cff,#c13dff)}
+main{flex:1;overflow-y:auto;padding:8px 14px 24px}
+.panel{display:none}.panel.on{display:block}
+.card{background:rgba(10,20,50,.72);border:1px solid rgba(127,178,255,.25);border-radius:20px;padding:18px;margin-bottom:12px;backdrop-filter:blur(6px)}
+.big{font-size:21px;font-weight:800;line-height:1.3}
+.btn{display:block;width:100%;padding:16px;margin:8px 0;border:0;border-radius:16px;font-size:17px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);text-align:left}
+.btn.go{background:linear-gradient(135deg,#2b5cff,#c13dff);text-align:center}
+.btn.right{background:#1fae5b}.btn.wrong{background:#c0263f}
+#gong{width:230px;height:230px;margin:10px auto 6px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#ffe9a0,#d99a2b 45%,#7a4a0c 75%,#3a2205);box-shadow:0 0 60px #ffb84d88,inset 0 0 30px #0008;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;color:#3a2205;letter-spacing:2px;user-select:none}
+#gong.hit{animation:wob .9s}
+@keyframes wob{0%{transform:scale(1)}10%{transform:scale(.92) rotate(-3deg)}30%{transform:scale(1.06) rotate(2deg)}60%{transform:scale(.98)}100%{transform:scale(1)}}
+#pad{height:220px;border-radius:20px;background:linear-gradient(135deg,#0d2a6b,#3a0d6b);display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;opacity:.95;touch-action:none;user-select:none}
+.score{display:flex;justify-content:space-around;font-weight:800;font-size:18px;margin-bottom:8px}
+.score .turn{color:#ffd36b;text-shadow:0 0 12px #ffd36b}
+.small{font-size:13px;opacity:.7}
+input{width:100%;padding:12px;border-radius:12px;border:0;font-size:16px;margin:4px 0}
+.oracle{font-size:22px;font-weight:800;min-height:90px;display:flex;align-items:center;justify-content:center;text-align:center}
+</style></head>
+<body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+<header><h1>DOOM GONG</h1><div class="sub">DENIM QUEST · built by an AI for Jonnie &amp; Brandon · tonight 8pm @ The DLC</div></header>
+<nav>
+<button class="on" data-p="p1">🔔 Gong</button>
+<button data-p="p2">🧠 Trivia</button>
+<button data-p="p3">🔮 Oracle</button>
+<button data-p="p4">🚗 Uber</button>
+</nav>
+<main>
+
+<section class="panel on" id="p1">
+<div class="card" style="text-align:center">
+<div class="big">Turn your sound on. Hit the gong.</div>
+<div id="gong">GONG</div>
+<div class="small">Every hit is generated live by math on your phone. No recordings.</div>
+</div>
+<div class="card">
+<div class="big" style="margin-bottom:8px">Denim Psych Synth</div>
+<div id="pad">Drag your finger around.<br>Left↔right = notes · up↕down = tone<br>You're in the band now.</div>
+</div>
+</section>
+
+<section class="panel" id="p2">
+<div class="card" id="setup">
+<div class="big">Doom Gong Trivia: Jonnie vs Brandon</div>
+<p class="small">Pass the phone. Whoever's turn it is answers. Winner picks the first drink.</p>
+<input id="n1" value="Jonnie"><input id="n2" value="Brandon">
+<button class="btn go" onclick="startQ()">START</button>
+</div>
+<div id="game" style="display:none">
+<div class="score"><span id="s1"></span><span id="s2"></span></div>
+<div class="card"><div class="small" id="qn"></div><div class="big" id="q"></div></div>
+<div id="opts"></div>
+<div class="card small" id="fact" style="display:none"></div>
+<button class="btn go" id="next" style="display:none" onclick="nextQ()">NEXT ▶</button>
+</div>
+</section>
+
+<section class="panel" id="p3">
+<div class="card" style="text-align:center">
+<div class="big">The Gong Oracle</div>
+<p class="small">Ask a yes/no question out loud. Then tap.</p>
+<div class="oracle" id="orc">🔮</div>
+<button class="btn go" onclick="oracle()">CONSULT THE GONG</button>
+</div>
+</section>
+
+<section class="panel" id="p4">
+<div class="card" style="text-align:center">
+<div class="big" id="dare">Tap for an Uber challenge</div>
+<button class="btn go" onclick="dare()">NEXT CHALLENGE</button>
+<p class="small">Keep it friendly. Tip your driver.</p>
+</div>
+<div class="card small">
+<b>How this happened:</b> Brandon texted his AI assistant from the couch: "make something that'll blow Jonnie's mind, a game for the Uber." It looked up tonight's band, wrote this whole app (the gong sound, the visuals, the trivia), tested it, put it online, and texted you the link. No human wrote a line of it. Welcome to AI, Jonnie. 🐟
+</div>
+</section>
+
+</main></div>
+<script>
+// ---------- audio ----------
+let A=null,master=null;
+function ac(){if(!A){A=new (window.AudioContext||window.webkitAudioContext)();master=A.createGain();master.gain.value=.8;
+const comp=A.createDynamicsCompressor();master.connect(comp);comp.connect(A.destination);}
+if(A.state==='suspended')A.resume();return A}
+function gong(power=1){ac();const t=A.currentTime;const base=72+Math.random()*8;
+[1,1.48,1.97,2.43,2.98,3.71,4.39,5.62].forEach((r,i)=>{const o=A.createOscillator(),g=A.createGain();
+o.type=i%3?'sine':'triangle';o.frequency.setValueAtTime(base*r*(1+Math.random()*.004),t);
+o.frequency.exponentialRampToValueAtTime(base*r*.985,t+6);
+const v=.32/(i+1)*power;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01+i*.004);
+g.gain.exponentialRampToValueAtTime(.0001,t+3+6/(i+1)+Math.random()*2);
+const p=A.createStereoPanner?A.createStereoPanner():null;
+if(p){p.pan.value=(Math.random()-.5)*.8;o.connect(g).connect(p).connect(master)}else o.connect(g).connect(master);
+o.start(t);o.stop(t+12)});
+const n=A.createBufferSource(),b=A.createBuffer(1,A.sampleRate*.4,A.sampleRate),d=b.getChannelData(0);
+for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+const f=A.createBiquadFilter();f.type='bandpass';f.frequency.value=900;const ng=A.createGain();ng.gain.value=.5*power;
+n.buffer=b;n.connect(f).connect(ng).connect(master);n.start(t);
+burst(power)}
+const scale=[0,3,5,7,10,12,15,17,19,22,24];let voice=null;
+function padStart(x,y){ac();const o=A.createOscillator(),o2=A.createOscillator(),f=A.createBiquadFilter(),g=A.createGain(),dl=A.createDelay(),fb=A.createGain();
+o.type='sawtooth';o2.type='square';o2.detune.value=9;f.type='lowpass';f.Q.value=8;g.gain.value=0;
+dl.delayTime.value=.33;fb.gain.value=.42;
+o.connect(f);o2.connect(f);f.connect(g);g.connect(master);g.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(master);
+o.start();o2.start();g.gain.linearRampToValueAtTime(.18,A.currentTime+.05);voice={o,o2,f,g};padMove(x,y)}
+function padMove(x,y){if(!voice)return;const n=scale[Math.min(scale.length-1,Math.floor(x*scale.length))];
+const fr=110*Math.pow(2,n/12);voice.o.frequency.setTargetAtTime(fr,A.currentTime,.03);voice.o2.frequency.setTargetAtTime(fr/2,A.currentTime,.03);
+voice.f.frequency.setTargetAtTime(200+Math.pow(1-y,2)*5000,A.currentTime,.05);hue=x*360;ripple(x,y)}
+function padEnd(){if(!voice)return;const v=voice;v.g.gain.setTargetAtTime(0,A.currentTime,.15);setTimeout(()=>{v.o.stop();v.o2.stop()},800);voice=null}
+// ---------- visuals ----------
+const cv=document.getElementById('bg'),cx=cv.getContext('2d');let W,H,hue=220,energy=0,rings=[];
+function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio}addEventListener('resize',rs);rs();
+function burst(p){energy=Math.min(1.5,energy+p);for(let i=0;i<5;i++)rings.push({x:.5,y:.33,r:0,s:4+i*3,h:hue+i*40,a:1})}
+function ripple(x,y){if(Math.random()<.35)rings.push({x,y:.55+y*.3,r:0,s:5,h:hue,a:.8})}
+let T=0;function draw(){T+=.01;energy*=.985;cx.fillStyle='rgba(5,11,28,.18)';cx.fillRect(0,0,W,H);
+const n=7;for(let i=0;i<n;i++){const a=T*(.6+i*.13)+i;const r=(Math.min(W,H)*.25)*(1+energy*.6)*(.5+i/n);
+cx.beginPath();for(let k=0;k<=60;k++){const th=k/60*Math.PI*2;const w=Math.sin(th*(3+i)+a*2)*18*(1+energy*3)*devicePixelRatio;
+const X=W/2+Math.cos(th+a*.3)*(r+w),Y=H*.42+Math.sin(th+a*.3)*(r+w)*.8;k?cx.lineTo(X,Y):cx.moveTo(X,Y)}
+cx.strokeStyle=`hsla(${(hue+i*35+T*40)%360},90%,${55+energy*20}%,${.18+energy*.25})`;cx.lineWidth=(2+energy*4)*devicePixelRatio;cx.stroke()}
+rings=rings.filter(g=>g.a>.02);rings.forEach(g=>{g.r+=g.s*devicePixelRatio;g.a*=.965;cx.beginPath();cx.arc(g.x*W,g.y*H,g.r,0,7);
+cx.strokeStyle=`hsla(${g.h%360},95%,65%,${g.a})`;cx.lineWidth=3*devicePixelRatio;cx.stroke()});requestAnimationFrame(draw)}draw();
+// ---------- ui ----------
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.panel').forEach(e=>e.classList.remove('on'));b.classList.add('on');document.getElementById(b.dataset.p).classList.add('on');ac()});
+const G=document.getElementById('gong');G.addEventListener('pointerdown',()=>{gong(1);G.classList.remove('hit');void G.offsetWidth;G.classList.add('hit');navigator.vibrate&&navigator.vibrate(60)});
+const P=document.getElementById('pad');const rel=e=>{const r=P.getBoundingClientRect();return[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height].map(v=>Math.max(0,Math.min(.999,v)))};
+P.addEventListener('pointerdown',e=>{P.setPointerCapture(e.pointerId);padStart(...rel(e))});P.addEventListener('pointermove',e=>padMove(...rel(e)));
+P.addEventListener('pointerup',padEnd);P.addEventListener('pointercancel',padEnd);
+// ---------- trivia ----------
+const Q=[
+["What year did DOOM GONG form?",["2022","2015","2019","2009"],0,"2022. Three albums in three years since then."],
+["Where are they from?",["Louisville, Kentucky","Austin, Texas","Portland, Oregon","Brooklyn, NY"],0,"Louisville, KY. A long drive to Salt Lake for a show tonight."],
+["How many members?",["7","3","5","11"],0,"7 music-school nerds. Count them tonight."],
+["They invented their own genre. What's it called?",["Denim Psych","Jorts Core","Corduroy Prog","Flannel Fusion"],0,"Denim Psych: psych rock + jazz fusion + prog + bedroom pop + lo-fi + 'a lot of denim'."],
+["Which is NOT a DOOM GONG album?",["Gong Show Forever","MEGAGONG","Dream Behemoth","DOOM GONG"],0,"Their LPs: DOOM GONG, Dream Behemoth, MEGAGONG, plus a live one."],
+["Their live album is 'Live at the Whirling ____'",["Tiger","Dervish","Gong","Denim"],0,"Live at the Whirling Tiger."],
+["Where did they play last night?",["Offbeat Fest in Reno","Red Rocks","Coachella","A Denny's"],0,"Offbeat Music Festival, Reno NV. Denver is tomorrow."],
+["Which band have they NOT toured with (as far as the internet knows)?",["The Rolling Stones","Amyl and the Sniffers","BADBADNOTGOOD","The Black Angels"],0,"They've played with Amyl and the Sniffers, BADBADNOTGOOD, The Black Angels, King Buffalo and more."],
+["Which festival have they actually played?",["Jorts Fest","Denim Day","Gongapalooza","Pants Party"],0,"Jorts Fest is real. Also Treefort, Sled Island and Moonshiners Ball."],
+["Tonight's venue?",["The DLC at Quarters","The Depot","Kilby Court","Red Butte"],0,"The DLC at Quarters, 5 E 400 S. Doors around 8."],
+["How long did it take an AI to research this band and build this whole game?",["Less time than your Uber ride","3 weeks","A whole weekend","It's not possible"],0,"About 10 minutes, start to finish, from one text Brandon sent."],
+["Their live shows are described as 'enigmatic and ____'",["seamless","loud","sticky","denim-scented"],0,"Seamless: songs flow into each other. Don't go to the bar mid-song."],
+];
+let order,qi,sc,turn,names;
+function sh(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1])}
+function startQ(){ac();names=[n1.value||'P1',n2.value||'P2'];order=sh(Q.map((_,i)=>i));qi=0;sc=[0,0];turn=0;setup.style.display='none';game.style.display='block';showQ()}
+function upd(){s1.innerHTML=names[0]+': '+sc[0];s2.innerHTML=names[1]+': '+sc[1];s1.className=turn==0?'turn':'';s2.className=turn==1?'turn':''}
+function showQ(){upd();if(qi>=order.length)return end();const [q,o,c,f]=Q[order[qi]];qn.textContent=`Q${qi+1}/${order.length} · ${names[turn]}'s turn`;document.getElementById('q').textContent=q;
+fact.style.display='none';next.style.display='none';opts.innerHTML='';sh(o.map((t,i)=>[t,i])).forEach(([t,i])=>{const b=document.createElement('button');b.className='btn';b.textContent=t;
+b.onclick=()=>{if(next.style.display=='block')return;const ok=i===c;b.classList.add(ok?'right':'wrong');if(ok){sc[turn]++;gong(.7)}else{boop()}
+[...opts.children].forEach(x=>{if(x.textContent===o[c])x.classList.add('right')});fact.textContent=(ok?'✅ ':'❌ ')+f;fact.style.display='block';next.style.display='block';upd()};opts.appendChild(b)})}
+function nextQ(){qi++;turn=1-turn;showQ()}
+function end(){upd();const w=sc[0]==sc[1]?null:(sc[0]>sc[1]?names[0]:names[1]);qn.textContent='GAME OVER';document.getElementById('q').textContent=w?`🏆 ${w} wins! Loser buys the first round.`:'🤝 Tie. You both buy.';
+opts.innerHTML='';fact.style.display='none';next.style.display='block';next.textContent='PLAY AGAIN';next.onclick=()=>{next.textContent='NEXT ▶';next.onclick=nextQ;startQ()};gong(1);setTimeout(()=>gong(1),600)}
+function boop(){ac();const o=A.createOscillator(),g=A.createGain();o.type='square';o.frequency.setValueAtTime(220,A.currentTime);o.frequency.exponentialRampToValueAtTime(70,A.currentTime+.35);
+g.gain.setValueAtTime(.15,A.currentTime);g.gain.exponentialRampToValueAtTime(.001,A.currentTime+.4);o.connect(g).connect(master);o.start();o.stop(A.currentTime+.4)}
+// ---------- oracle + dares ----------
+const OR=["The gong says YES. Loudly.","Absolutely not. The denim forbids it.","Ask again after the second song.","Yes, but only if you dance.","The cat already knows. The cat says yes.","Signs point to MEGAGONG.","No. But ask Brandon to buy you a drink anyway.","It is written in the jorts. YES.","Reply hazy. Too much fog machine.","100%. Write it down."];
+function oracle(){gong(.5);orc.textContent='…';setTimeout(()=>orc.textContent=OR[Math.floor(Math.random()*OR.length)],900)}
+const D=["Ask the driver what the best concert they ever saw was.","Hum a song. The other person has 10 seconds to guess it.","Invent a Doom Gong song title. Loser of a rock-paper-scissors has to sing the chorus.","Describe the cat from Jonnie's photo as if it were a band member.","Say 'DENIM PSYCH' in your best movie-trailer voice.","Name 5 bands with an animal in the name. Go.","Predict the first song length. Closest guess wins a drink.","Rate your outfit's denim level from 1 to 10. Justify it.","Air-drum the entire next song on the radio.","Agree on a secret signal for 'this is the best part of the show.'","Tell the other person the weirdest thing on your phone's camera roll (keep it legal).","Pick tonight's band nickname for each other."];
+let di=-1;const DS=sh(D.map((_,i)=>i));function dare(){di=(di+1)%D.length;document.getElementById('dare').textContent=D[DS[di]];boop()}
+</script>
+</body></html>
