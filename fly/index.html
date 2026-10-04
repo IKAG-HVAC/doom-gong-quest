@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>DENIM DRIFT</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;font-family:-apple-system,system-ui,sans-serif;color:#fff}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;pointer-events:none}
+#ui.hide{display:none}
+h1{font-size:44px;margin:0;font-weight:900;letter-spacing:4px;background:linear-gradient(90deg,#7fb2ff,#ff6bd6,#ffd36b,#6bffb8,#7fb2ff);background-size:400%;-webkit-background-clip:text;color:transparent;animation:s 5s linear infinite}
+@keyframes s{to{background-position:400%}}
+p{opacity:.85;font-size:16px;line-height:1.45;max-width:340px}
+.tap{margin-top:18px;font-size:20px;font-weight:800;animation:b 1.2s ease-in-out infinite}
+@keyframes b{50%{opacity:.35}}
+#hud{position:fixed;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;font-weight:800;font-size:18px;text-shadow:0 0 8px #000;pointer-events:none}
+.small{font-size:13px;opacity:.6}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud"><span id="sc">0</span><span id="lv"></span><span id="hi"></span></div>
+<div id="ui">
+<h1>DENIM DRIFT</h1>
+<p>Fly through the Doom Gong dimension.<br>Drag your finger anywhere to steer.<br>Dodge the spinning gongs. Grab the glowing orbs.</p>
+<p class="small">Silent mode. Uber-friendly. 🐟</p>
+<div class="tap">TAP TO FLY</div>
+<p class="small" id="best"></p>
+</div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d'),ui=document.getElementById('ui');
+let W,H,D=Math.min(devicePixelRatio||1,2);
+function rs(){W=innerWidth;H=innerHeight;c.width=W*D;c.height=H*D;x.setTransform(D,0,0,D,0,0)}addEventListener('resize',rs);rs();
+let best=+localStorage.dd_best||0,state='menu',t=0,score=0,speed,ship,tx,ty,obs,orbs,parts,stars,shake=0,hueShift=0,trip=0,inv=0,lives;
+document.getElementById('best').textContent=best?'Best: '+best:'';
+function reset(){speed=1;score=0;lives=3;inv=90;trip=0;ship={x:W/2,y:H*.75};tx=ship.x;ty=ship.y;obs=[];orbs=[];parts=[];}
+stars=Array.from({length:140},()=>({x:Math.random()-.5,y:Math.random()-.5,z:Math.random()}));
+function pt(e){const p=e.touches?e.touches[0]:e;return[p.clientX,p.clientY]}
+let off=[0,0];
+function down(e){e.preventDefault();const[a,b]=pt(e);if(state!=='play'){reset();state='play';ui.classList.add('hide');}off=[ship.x-a,ship.y-b];move(e)}
+function move(e){if(state!=='play')return;e.preventDefault();const[a,b]=pt(e);tx=Math.max(14,Math.min(W-14,a+off[0]));ty=Math.max(70,Math.min(H-20,b+off[1]))}
+c.addEventListener('touchstart',down,{passive:false});c.addEventListener('touchmove',move,{passive:false});
+c.addEventListener('mousedown',down);addEventListener('mousemove',e=>{if(e.buttons)move(e)});
+function spawn(){const r=16+Math.random()*26*Math.min(2,.8+speed*.3);const kind=Math.random()<.25&&speed>1.4?'wave':'gong';
+obs.push({x:Math.random()*W,y:-60,r,vx:(Math.random()-.5)*1.4*speed,vy:(2.2+Math.random()*1.8)*speed,a:0,va:(Math.random()-.5)*.12,h:Math.random()*360,kind,ph:Math.random()*6})}
+function spawnOrb(){orbs.push({x:30+Math.random()*(W-60),y:-30,vy:2.4*speed,h:Math.random()*360})}
+function boom(px,py,h,n=26){for(let i=0;i<n;i++){const a=Math.random()*7,s=1+Math.random()*5;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,h:h+Math.random()*60})}}
+function bg(){hueShift+=.4+trip*2;
+const g=x.createRadialGradient(W/2,H*.35,0,W/2,H*.35,Math.max(W,H));
+g.addColorStop(0,`hsl(${(hueShift)%360},70%,${14+trip*10}%)`);g.addColorStop(.5,`hsl(${(hueShift+90)%360},60%,7%)`);g.addColorStop(1,'#000');
+x.fillStyle=g;x.fillRect(0,0,W,H);
+// tunnel rings
+for(let i=0;i<12;i++){const z=((t*.012*speed+i/12)%1);const r=z*z*Math.max(W,H)*1.3;
+x.beginPath();for(let k=0;k<=48;k++){const th=k/48*6.283;const w=Math.sin(th*6+t*.05+i)*(6+trip*25)*z;
+const X=W/2+Math.cos(th)*(r+w)+Math.sin(t*.01)*40*z,Y=H*.35+Math.sin(th)*(r+w)*.75;k?x.lineTo(X,Y):x.moveTo(X,Y)}
+x.strokeStyle=`hsla(${(hueShift+i*30)%360},95%,60%,${z*.5})`;x.lineWidth=1+z*4;x.stroke()}
+// starfield
+for(const s of stars){s.z-=.006*speed;if(s.z<=.02){s.z=1;s.x=Math.random()-.5;s.y=Math.random()-.5}
+const X=W/2+s.x/s.z*W*.6,Y=H*.35+s.y/s.z*H*.6,R=(1-s.z)*2.4;x.fillStyle=`hsla(${(hueShift+s.x*400)%360},100%,80%,${1-s.z})`;x.fillRect(X,Y,R,R)}}
+function drawGong(o){x.save();x.translate(o.x,o.y);x.rotate(o.a);
+if(o.kind==='wave'){x.beginPath();for(let k=0;k<=40;k++){const th=k/40*6.283;const rr=o.r*(1+.35*Math.sin(th*5+t*.15+o.ph));k?x.lineTo(Math.cos(th)*rr,Math.sin(th)*rr):x.moveTo(Math.cos(th)*rr,Math.sin(th)*rr)}
+x.fillStyle=`hsla(${(o.h+t*3)%360},90%,55%,.85)`;x.shadowColor=x.fillStyle;x.shadowBlur=18;x.fill();x.restore();return}
+const g=x.createRadialGradient(-o.r*.3,-o.r*.3,2,0,0,o.r);g.addColorStop(0,'#fff0b0');g.addColorStop(.45,`hsl(${(38+o.h*.05)%360},80%,50%)`);g.addColorStop(1,'#3a2205');
+x.shadowColor='#ffb84d';x.shadowBlur=14;x.fillStyle=g;x.beginPath();x.arc(0,0,o.r,0,7);x.fill();x.shadowBlur=0;
+x.strokeStyle='rgba(60,30,0,.55)';x.lineWidth=1.5;for(let i=1;i<4;i++){x.beginPath();x.arc(0,0,o.r*i/4,0,7);x.stroke()}
+x.fillStyle='rgba(60,30,0,.7)';x.font=`900 ${o.r*.42}px system-ui`;x.textAlign='center';x.textBaseline='middle';x.fillText('GONG',0,1);x.restore()}
+function drawShip(){const s=ship;x.save();x.translate(s.x,s.y);const tilt=(tx-s.x)*.02;x.rotate(Math.max(-.5,Math.min(.5,tilt)));
+if(inv>0&&Math.floor(t/5)%2)x.globalAlpha=.35;
+// engine trail
+for(let i=0;i<3;i++){parts.push({x:s.x+(Math.random()-.5)*8,y:s.y+18,vx:(Math.random()-.5)*.6,vy:2+Math.random()*2,l:.7,h:hueShift+180+Math.random()*60,trail:1})}
+x.shadowColor=`hsl(${(hueShift+200)%360},100%,60%)`;x.shadowBlur=20;
+x.fillStyle='#2b5cff';x.beginPath();x.moveTo(0,-24);x.lineTo(16,16);x.lineTo(0,9);x.lineTo(-16,16);x.closePath();x.fill();
+x.fillStyle='#9fc3ff';x.beginPath();x.moveTo(0,-14);x.lineTo(6,4);x.lineTo(-6,4);x.closePath();x.fill();
+x.strokeStyle='#ffd36b';x.lineWidth=1.5;x.setLineDash([3,3]);x.beginPath();x.moveTo(-10,12);x.lineTo(10,12);x.stroke();x.setLineDash([]);
+x.restore()}
+function loop(){t++;x.save();if(shake>0){x.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.88}
+bg();
+if(state==='play'){
+speed=1+score/1400;trip=Math.max(0,trip-.004);if(inv>0)inv--;
+ship.x+=(tx-ship.x)*.25;ship.y+=(ty-ship.y)*.25;score+=Math.round(speed);
+if(Math.random()<.035*speed)spawn();if(Math.random()<.012)spawnOrb();
+for(const o of obs){o.x+=o.vx;o.y+=o.vy;o.a+=o.va;if(o.x<o.r||o.x>W-o.r)o.vx*=-1;drawGong(o);
+if(inv<=0&&Math.hypot(o.x-ship.x,o.y-ship.y)<o.r+11){lives--;inv=100;shake=18;boom(ship.x,ship.y,30,40);navigator.vibrate&&navigator.vibrate(120);o.y=H+200;
+if(lives<=0){state='over';boom(ship.x,ship.y,200,90);if(score>best){best=score;localStorage.dd_best=best}
+setTimeout(()=>{ui.querySelector('h1').textContent='GONGED';ui.querySelector('p').innerHTML=`Score: <b>${score}</b><br>Pass the phone. Can Brandon beat it?`;document.getElementById('best').textContent='Best: '+best;ui.querySelector('.tap').textContent='TAP TO FLY AGAIN';ui.classList.remove('hide')},900)}}}
+obs=obs.filter(o=>o.y<H+80);
+for(const o of orbs){o.y+=o.vy;const R=10+Math.sin(t*.2)*2;x.shadowColor=`hsl(${(o.h+t*5)%360},100%,60%)`;x.shadowBlur=25;x.fillStyle=x.shadowColor;x.beginPath();x.arc(o.x,o.y,R,0,7);x.fill();x.shadowBlur=0;
+if(Math.hypot(o.x-ship.x,o.y-ship.y)<R+16){o.y=H+99;score+=250;trip=1;boom(o.x,o.y,o.h,30)}}
+orbs=orbs.filter(o=>o.y<H+50);
+drawShip()}
+for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.l-=p.trail?.04:.018;x.fillStyle=`hsla(${p.h%360},100%,65%,${Math.max(0,p.l)})`;x.fillRect(p.x,p.y,p.trail?3:4,p.trail?3:4)}
+parts=parts.filter(p=>p.l>0);
+// trip overlay
+if(trip>0){x.globalCompositeOperation='overlay';x.fillStyle=`hsla(${(hueShift*3)%360},100%,50%,${trip*.35})`;x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over'}
+x.restore();
+document.getElementById('sc').textContent=state==='play'||state==='over'?score:'';
+document.getElementById('lv').textContent=state==='play'?'💙'.repeat(Math.max(0,lives)):'';
+document.getElementById('hi').textContent=best?'BEST '+best:'';
+requestAnimationFrame(loop)}
+loop();
+</script></body></html>
